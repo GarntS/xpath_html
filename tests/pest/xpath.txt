@@ -1,0 +1,17 @@
+default xpath test
+
+=======
+
+//meta[@name="PUD"]/@content
+
+=======
+
+(xpath
+  (xpath_expr
+    (axis: "//")
+    (step)
+    (axis: "/")
+    (terminal_step: "fdsa"
+    )
+  )
+)

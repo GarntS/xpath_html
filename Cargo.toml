@@ -1,0 +1,13 @@
+[package]
+name = "xpath_html"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pest = "2.7.12"
+pest-ast = "0.3.4"
+pest_derive = "2.7.12"
+
+[dev-dependencies]
+pest-test = "0.1.6"
+pest-test-gen = "0.1.7"
