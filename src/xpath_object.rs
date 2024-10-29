@@ -100,7 +100,7 @@ impl XPath {
             .expect("Parsed pairs contained no parsed XPaths!");
 
         // print our pair
-        pretty_print_pair(&base_pair, None);
+        //pretty_print_pair(&base_pair, None);
 
         // check we're parsing an xpath
         if base_pair.as_rule() != xpath_parser::Rule::xpath {
