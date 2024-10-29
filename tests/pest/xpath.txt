@@ -6,12 +6,33 @@ default xpath test
 
 =======
 
+// TODO(garnt): FIX TEST GRAMMAR
+
 (xpath
-  (xpath_expr
-    (axis: "//")
-    (step)
-    (axis: "/")
-    (terminal_step: "fdsa"
+  (expr > expr_single > or_expr > and_expr > comparison_expr > string_concat_expr > range_expr > additive_expr > multiplicative_expr > union_expr > intersect_except_expr > instanceof_expr > treat_expr > castable_expr > cast_expr > arrow_expr > unary_expr > value_expr > simple_map_expr > path_expr > relative_path_expr > step_expr > axis_step
+    (forward_step > abbrev_forward_step > node_test > name_test > eq_name > q_name > unprefixed_name > local_part > nc_name
+      (nc_name_start_char: "m")
+      (nc_name_char (nc_name_start_char: "e"))
+      (nc_name_char (nc_name_start_char: "t"))
+      (nc_name_char (nc_name_start_char: "a"))
     )
+    (predicate_list > predicate > expr > expr_single > or_expr > and_expr > comparison_expr
+      (string_concat_expr > range_expr > additive_expr > multiplicative_expr > union_expr > intersect_except_expr > instanceof_expr > treat_expr > castable_expr > cast_expr > arrow_expr > unary_expr > value_expr > simple_map_expr > path_expr > relative_path_expr > step_expr > axis_step
+        (forward_step > abbrev_forward_step > node_test > name_test > eq_name > q_name > unprefixed_name > local_part > nc_name
+          (nc_name_start_char: "n")
+          (nc_name_char > nc_name_start_char: "a")
+          (nc_name_char > nc_name_start_char: "m")
+          (nc_name_char > nc_name_start_char: "e")
+        )
+        (predicate_list: "")
+      )
+      (general_comp: "=")
+      (string_concat_expr > range_expr > additive_expr > multiplicative_expr > union_expr > intersect_except_expr > instanceof_expr > treat_expr > castable_expr > cast_expr > arrow_expr > unary_expr > value_expr > simple_map_expr > path_expr > relative_path_expr > step_expr > postfix_expr > primary_expr > literal > string_literal
+        (not_quot: "P")
+        (not_quot: "U")
+        (not_quot: "D")
+      )
+    )
+  (EOI: "")
   )
 )

@@ -1,0 +1,204 @@
+// whitespace to ignore
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\0" }
+
+// overall xpath expression
+xpath         = { SOI ~ expr ~ EOI }
+param_list    = { param ~ ("," ~ param)* }
+param         = { "$" ~ eq_name ~ type_declaration? }
+function_body = { enclosed_expr }
+enclosed_expr = { "{" ~ expr ~ "}" }
+expr          = { expr_single ~ ("," ~ expr_single)* }
+expr_single   = { for_expr | let_expr | quantified_expr | if_expr | or_expr }
+
+// for expressions
+for_expr           = { simple_for_clause ~ "return" ~ expr_single }
+simple_for_clause  = { "for" ~ simple_for_binding ~ ("," ~ simple_for_binding)* }
+simple_for_binding = { "$" ~ var_name ~ "in" ~ expr_single }
+
+// let expressions
+let_expr           = { simple_let_clause ~ "return" ~ expr_single }
+simple_let_clause  = { "let" ~ simple_let_binding ~ ("," ~ simple_let_binding)* }
+simple_let_binding = { "$" ~ var_name ~ ":=" ~ expr_single }
+
+// quantified expressions
+quantified_expr = { ("some" | "every") ~ "$" ~ var_name ~ "in" ~ expr_single ~ ("," ~ "$" ~ var_name ~ "in" ~ expr_single)* ~ "satisfies" ~ expr_single }
+
+// if expressions
+if_expr = { "if" ~ "(" ~ expr ~ ")" ~ "then" ~ expr_single ~ "else" ~ expr_single }
+
+// logical expressions
+or_expr            = { and_expr ~ ("or" ~ and_expr)* }
+and_expr           = { comparison_expr ~ ("and" ~ comparison_expr)* }
+comparison_expr    = { string_concat_expr ~ ((value_comp | general_comp | node_comp) ~ string_concat_expr)? }
+string_concat_expr = { range_expr ~ ("||" ~ range_expr)* }
+
+// math expressions
+range_expr          = { additive_expr ~ ("to" ~ additive_expr)? }
+additive_expr       = { multiplicative_expr ~ (("+" | "-") ~ multiplicative_expr)* }
+multiplicative_expr = { union_expr ~ (("*" | "div" | "idiv" | "mod") ~ union_expr)* }
+
+// set expressions
+union_expr            = { intersect_except_expr ~ (("union" | "|") ~ intersect_except_expr)* }
+intersect_except_expr = { instanceof_expr ~ (("intercept" | "except") ~ instanceof_expr)* }
+
+// typing expressions
+instanceof_expr = { treat_expr ~ ("instance" ~ "of" ~ sequence_type)? }
+treat_expr      = { castable_expr ~ ("treat" ~ "as" ~ sequence_type)? }
+castable_expr   = { cast_expr ~ ("castable" ~ "as" ~ single_type)? }
+cast_expr       = { arrow_expr ~ ("cast" ~ "as" ~ single_type)? }
+
+// function expressions
+arrow_expr = { unary_expr ~ ("=>" ~ arrow_function_specifier ~ argument_list)* }
+unary_expr = { ("-" | "+")* ~ value_expr }
+value_expr = { simple_map_expr }
+
+// comparison ops
+general_comp = { "=" | "!=" | "<" | "<=" | ">" | ">=" }
+value_comp   = { "eq" | "ne" | "lt" | "le" | "gt" | "ge" }
+node_comp    = { "is" | "<<" | ">>" }
+
+// map and path expressions
+simple_map_expr    = { path_expr ~ ("!" ~ path_expr)* }
+path_expr          = { ("//" ~ relative_path_expr?) | ("/" ~ relative_path_expr) | relative_path_expr }
+relative_path_expr = { step_expr ~ (("//" | "/") ~ step_expr)* }
+
+// step expressions
+step_expr = { postfix_expr | axis_step }
+axis_step = { (reverse_step | forward_step) ~ predicate_list }
+
+// forward steps
+forward_step        = { (forward_axis ~ node_test) | abbrev_forward_step }
+forward_axis        = { ("child" ~ "::") | ("descendant" ~ "::") | ("attribute" ~ "::") | ("self" ~ "::") | ("descendant-or-self" ~ "::") | ("following-sibling" ~ "::") | ("following" ~ "::") | ("namespace" ~ "::") }
+abbrev_forward_step = { "@"? ~ node_test }
+
+// reverse steps
+reverse_step        = { (reverse_axis ~ node_test) | abbrev_reverse_step }
+reverse_axis        = { ("parent" ~ "::") | ("ancestor" ~ "::") | ("preceding-sibling" ~ "::") | ("preceding" ~ "::") | ("ancestor-or-self" ~ "::") }
+abbrev_reverse_step = { ".." }
+
+node_test     = { kind_test | name_test }
+name_test     = { eq_name | wildcard }
+wildcard      = { "*" | (nc_name ~ ":*") | ("*:" ~ nc_name) | (braced_uri_literal ~ "*") }
+postfix_expr  = { primary_expr ~ (predicate | argument_list | lookup)* }
+argument_list = { "(" ~ (argument ~ ("," ~ argument)*)? ~ ")" }
+
+// predicates
+predicate_list           = { predicate* }
+predicate                = { "[" ~ expr ~ "]" }
+lookup                   = { "?" ~ key_specifier }
+key_specifier            = { nc_name | integer_literal | parenthesized_expr | "*" }
+arrow_function_specifier = { eq_name | var_ref | parenthesized_expr }
+
+primary_expr = { literal | var_ref | parenthesized_expr | context_item_expr | function_call | function_item_expr | map_constructor | array_constructor | unary_lookup }
+
+// literals
+literal         = { numeric_literal | string_literal }
+numeric_literal = { integer_literal | decimal_literal | double_literal }
+
+var_ref            = { "$" ~ var_name }
+var_name           = { eq_name }
+parenthesized_expr = { "(" ~ expr? ~ ")" }
+context_item_expr  = { "." }
+function_call      = { eq_name ~ argument_list }
+
+// arguments
+argument             = { expr_single | argument_placeholder }
+argument_placeholder = { "?" }
+
+// function expressions
+function_item_expr   = { named_function_ref | inline_function_expr }
+named_function_ref   = { eq_name ~ "#" ~ integer_literal }
+inline_function_expr = { "function" ~ "(" ~ param_list? ~ ")" ~ ("as" ~ sequence_type)? ~ function_body }
+
+// map type grammar
+map_constructor       = { "map" ~ "{" ~ (map_constructor_entry ~ ("," ~ map_constructor_entry)*)? ~ "}" }
+map_constructor_entry = { map_key_expr ~ ":" ~ map_value_expr }
+map_key_expr          = { expr_single }
+map_value_expr        = { expr_single }
+
+// array type grammar
+array_constructor        = { square_array_constructor | curly_array_constructor }
+square_array_constructor = { "[" ~ (expr_single ~ ("," ~ expr_single)*)? ~ "]" }
+curly_array_constructor  = { "array" ~ enclosed_expr }
+
+unary_lookup     = { "?" ~ key_specifier }
+single_type      = { simple_type_name ~ "?" }
+type_declaration = { "as" ~ sequence_type }
+
+// sequence grammar
+sequence_type        = { ("empty-sequence" ~ "(" ~ ")") | (item_type ~ occurrence_indicator?) }
+occurrence_indicator = { "?" | "*" | "+" }
+
+item_type            = { kind_test | ("item" ~ "(" ~ ")") | function_test | map_test | array_test | atomic_or_union_type | parenthesized_item_type }
+atomic_or_union_type = { eq_name }
+
+// type tests
+kind_test           = { document_test | element_test | attribute_test | schema_element_test | schema_attribute_test | pi_test | comment_test | text_test | namespace_node_test | any_kind_test }
+any_kind_test       = { "node" ~ "(" ~ ")" }
+document_test       = { "document-node" ~ "(" ~ (element_test | schema_element_test)? ~ ")" }
+text_test           = { "text" ~ "(" ~ ")" }
+comment_test        = { "comment" ~ "(" ~ ")" }
+namespace_node_test = { "namespace-node" ~ "(" ~ ")" }
+pi_test             = { "processing-instruction" ~ "(" ~ (nc_name | string_literal)? ~ ")" }
+
+attribute_test          = { "attribute" ~ "(" ~ (attrib_name_or_wildcard ~ ("," ~ type_name)?)? ~ ")" }
+attrib_name_or_wildcard = { attribute_name | "*" }
+
+schema_attribute_test = { "schema-attribute" ~ "(" ~ attribute_declaration ~ ")" }
+attribute_declaration = { attribute_name }
+
+element_test             = { "element" ~ "(" ~ (element_name_or_wildcard ~ ("," ~ type_name ~ "?"?)?)? ~ ")" }
+element_name_or_wildcard = { element_name | "*" }
+
+schema_element_test = { "schema-element" ~ "(" ~ element_declaration ~ ")" }
+element_declaration = { element_name }
+
+// name grammar
+attribute_name   = { eq_name }
+element_name     = { eq_name }
+simple_type_name = { type_name }
+type_name        = { eq_name }
+
+// function tests
+function_test       = { any_function_test | typed_function_test }
+any_function_test   = { "function" ~ "(" ~ "*" ~ ")" }
+typed_function_test = { "function" ~ "(" ~ (sequence_type ~ ("," ~ sequence_type)*)? ~ ")" ~ "as" ~ sequence_type }
+
+// map tests
+map_test       = { any_map_test | typed_map_test }
+any_map_test   = { "map" ~ "(" ~ "*" ~ ")" }
+typed_map_test = { "map" ~ "(" ~ atomic_or_union_type ~ "," ~ sequence_type ~ ")" }
+
+// array tests
+array_test              = { any_array_test | typed_array_test }
+any_array_test          = { "array" ~ "(" ~ "*" ~ ")" }
+typed_array_test        = { "array" ~ "(" ~ sequence_type ~ ")" }
+parenthesized_item_type = { "(" ~ item_type ~ ")" }
+eq_name                 = { q_name | uri_qualified_name }
+
+// terminal symbols
+integer_literal    = { digits }
+decimal_literal    = { ("." ~ digits) | (digits ~ "." ~ ASCII_DIGIT*) }
+double_literal     = { (("." ~ digits) | (digits ~ ("." ~ ASCII_DIGIT*)?)) ~ ("e" | "E") ~ ("+" | "-")? ~ digits }
+string_literal     = { (QUOTATION_MARK ~ (escape_quot | not_quot)* ~ QUOTATION_MARK) | ("'" ~ (escape_apos | not_apos)* ~ "'") }
+uri_qualified_name = { braced_uri_literal | nc_name }
+braced_uri_literal = { "Q" ~ "{" ~ ("^" | "{" | "}")* ~ "}" }
+escape_quot        = { QUOTATION_MARK ~ QUOTATION_MARK }
+not_quot           = { !(QUOTATION_MARK) ~ ANY }
+escape_apos        = { "''" }
+not_apos           = { !("'") ~ ANY }
+comment            = { "(:" ~ (comment_contents | comment)* ~ ":)" }
+comment_contents   = { !("(:" | ":)") ~ nc_name_char+ }
+digits             = { ASCII_DIGIT+ }
+
+// qualified names
+q_name          = { prefixed_name | unprefixed_name }
+prefixed_name   = { prefix ~ ":" ~ local_part }
+unprefixed_name = { local_part }
+prefix          = { nc_name }
+local_part      = { nc_name }
+
+// nc names
+nc_name            = { nc_name_start_char ~ (nc_name_char)* }
+nc_name_start_char = { ASCII_ALPHA | "_" | '\u{C0}'..'\u{D6}' | '\u{D8}'..'\u{F6}' | '\u{F8}'..'\u{2FF}' | '\u{370}'..'\u{37D}' | '\u{37F}'..'\u{1FFF}' | '\u{200C}'..'\u{200D}' | '\u{2070}'..'\u{218F}' | '\u{2C00}'..'\u{2FEF}' | '\u{3001}'..'\u{D7FF}' | '\u{F900}'..'\u{FDCF}' | '\u{FDF0}'..'\u{FFFD}' | '\u{10000}'..'\u{EFFFF}' }
+nc_name_char       = { nc_name_start_char | "-" | "." | ASCII_DIGIT | "\u{b8}" | '\u{0300}'..'\u{036F}' | '\u{203F}'..'\u{2040}' }

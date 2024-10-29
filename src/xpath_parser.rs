@@ -8,7 +8,7 @@ use pest_derive::Parser;
 
 /// XPath parser implemented with pest_derive
 #[derive(Parser)]
-#[grammar = "xpath_grammar.pest"]
+#[grammar = "xpath_31_grammar.pest"]
 pub struct XPathParser;
 
 // pest Tests
