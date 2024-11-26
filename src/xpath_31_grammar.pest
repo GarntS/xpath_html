@@ -8,7 +8,7 @@ param         = { "$" ~ eq_name ~ type_declaration? }
 function_body = { enclosed_expr }
 enclosed_expr = { "{" ~ expr ~ "}" }
 expr          = { expr_single ~ ("," ~ expr_single)* }
-expr_single   = { for_expr | let_expr | quantified_expr | if_expr | or_expr }
+expr_single   = { for_expr | let_expr | quantified_expr | if_expr | logical_expr }
 
 // for expressions
 for_expr           = { simple_for_clause ~ "return" ~ expr_single }
@@ -27,30 +27,35 @@ quantified_expr = { ("some" | "every") ~ "$" ~ var_name ~ "in" ~ expr_single ~ (
 if_expr = { "if" ~ "(" ~ expr ~ ")" ~ "then" ~ expr_single ~ "else" ~ expr_single }
 
 // logical expressions
-or_expr            = { and_expr ~ ("or" ~ and_expr)* }
-and_expr           = { comparison_expr ~ ("and" ~ comparison_expr)* }
-comparison_expr    = { string_concat_expr ~ ((value_comp | general_comp | node_comp) ~ string_concat_expr)? }
-string_concat_expr = { range_expr ~ ("||" ~ range_expr)* }
+logical_expr       = { or_expr | and_expr | comparison_expr | string_concat_expr }
+or_expr            = { (and_expr | comparison_expr | string_concat_expr | math_expr) ~ ("or" ~ logical_expr)+ }
+and_expr           = { (comparison_expr | string_concat_expr | math_expr) ~ ("and" ~ logical_expr)+ }
+comparison_expr    = { (string_concat_expr | math_expr) ~ (value_comp | general_comp | node_comp) ~ (string_concat_expr | math_expr) }
+string_concat_expr = { math_expr ~ ("||" ~ math_expr)+ }
 
 // math expressions
-range_expr          = { additive_expr ~ ("to" ~ additive_expr)? }
-additive_expr       = { multiplicative_expr ~ (("+" | "-") ~ multiplicative_expr)* }
-multiplicative_expr = { union_expr ~ (("*" | "div" | "idiv" | "mod") ~ union_expr)* }
+math_expr           = { range_expr | additive_expr | multiplicative_expr }
+range_expr          = { (additive_expr | multiplicative_expr | set_expr) ~ "to" ~ (additive_expr | multiplicative_expr | set_expr) }
+additive_expr       = { (multiplicative_expr | set_expr) ~ (("+" | "-") ~ (multiplicative_expr | set_expr))+ }
+multiplicative_expr = { set_expr ~ (("*" | "div" | "idiv" | "mod") ~ set_expr)+ }
 
 // set expressions
-union_expr            = { intersect_except_expr ~ (("union" | "|") ~ intersect_except_expr)* }
-intersect_except_expr = { instanceof_expr ~ (("intercept" | "except") ~ instanceof_expr)* }
+set_expr              = { union_expr | intersect_except_expr | typing_expr }
+union_expr            = { (intersect_except_expr | typing_expr) ~ (("union" | "|") ~ (intersect_except_expr | typing_expr))+ }
+intersect_except_expr = { typing_expr ~ (("intercept" | "except") ~ typing_expr)+ }
 
 // typing expressions
-instanceof_expr = { treat_expr ~ ("instance" ~ "of" ~ sequence_type)? }
-treat_expr      = { castable_expr ~ ("treat" ~ "as" ~ sequence_type)? }
-castable_expr   = { cast_expr ~ ("castable" ~ "as" ~ single_type)? }
-cast_expr       = { arrow_expr ~ ("cast" ~ "as" ~ single_type)? }
+typing_expr     = { instanceof_expr | treat_expr | castable_expr | cast_expr | function_expr }
+instanceof_expr = { (treat_expr | castable_expr | cast_expr | function_expr) ~ "instance" ~ "of" ~ sequence_type }
+treat_expr      = { (castable_expr | cast_expr | function_expr) ~ "treat" ~ "as" ~ sequence_type }
+castable_expr   = { (cast_expr | function_expr) ~ "castable" ~ "as" ~ single_type }
+cast_expr       = { function_expr ~ "cast" ~ "as" ~ single_type }
 
 // function expressions
-arrow_expr = { unary_expr ~ ("=>" ~ arrow_function_specifier ~ argument_list)* }
-unary_expr = { ("-" | "+")* ~ value_expr }
-value_expr = { simple_map_expr }
+function_expr = { arrow_expr | unary_expr | value_expr }
+arrow_expr    = { (unary_expr | value_expr) ~ ("=>" ~ arrow_function_specifier ~ argument_list)+ }
+unary_expr    = { ("-" | "+")+ ~ value_expr }
+value_expr    = { simple_map_expr }
 
 // comparison ops
 general_comp = { "=" | "!=" | "<" | "<=" | ">" | ">=" }

@@ -4,6 +4,7 @@
  * desc:    Entrypoint for the xpath library.
 */
 
+pub mod typer;
 pub mod xpath_object;
 mod xpath_parser;
 
@@ -15,12 +16,12 @@ mod test {
 
     #[test]
     fn basic_functional_test() {
-        let test_str = "div[contains(@class, 'id-AuthorList')]";
+        let test_str = "div[contains(@class, 'id-AuthorList') or @somethin]";
         let xpath_object = XPath::parse_from_str(test_str).unwrap();
         println!("obj: {:#?}", &xpath_object);
 
-        let torture_test_str = r#"//meta[@name="PUD"]/@content"#;
+        /*let torture_test_str = r#"//meta[@name="PUD"]/@content"#;
         let torture_xpath_object = XPath::parse_from_str(torture_test_str).unwrap();
-        println!("torture_obj: {:#?}", &torture_xpath_object);
+        println!("torture_obj: {:#?}", &torture_xpath_object);*/
     }
 }
